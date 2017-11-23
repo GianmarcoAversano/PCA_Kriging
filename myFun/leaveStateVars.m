@@ -35,7 +35,11 @@ for j = 1:nSamples
     for i = 1 : nVars
         j1 = 1+(j-1)*n;
         j2 = j*n;
-        temp = [temp; Q(i, j1:j2)'];
+        try
+            temp = [temp; Q(i, j1:j2)'];
+        catch
+            disp(' ');
+        end
     end
     
     % Data matrix

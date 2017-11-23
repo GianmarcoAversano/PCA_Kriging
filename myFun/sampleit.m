@@ -6,7 +6,6 @@ function value = sampleit(x, xp, Y)
 %           Y  = the data (datadim X length of the map)
 
 [~, indx] = ismember(x, xp, 'rows');
-
 value = Y(:, indx);
 
 end

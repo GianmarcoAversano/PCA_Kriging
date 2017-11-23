@@ -1,6 +1,6 @@
 function [nz_X_k, nz_idx_clust, k, varargout] = partitionVQ(X, idx, varargin)
 
-    [rows, columns] = size(X); % samples, variables
+    [rows, columns] = size(X); % Samples, Variables
 
     threshold = columns;
     
@@ -12,7 +12,8 @@ function [nz_X_k, nz_idx_clust, k, varargout] = partitionVQ(X, idx, varargin)
         isremove = false;
     end
     
-    k = numel(unique(idx));
+%     k = numel(unique(idx));
+    k = max(idx);
 
     idx_clust = cell(k, 1);
     n_points = zeros(k, 1); 
@@ -27,10 +28,10 @@ function [nz_X_k, nz_idx_clust, k, varargout] = partitionVQ(X, idx, varargin)
             end
         end
     end
-    if isremove~=1
+    if isremove ~= 1
         nz_idx = find(n_points > -1);
     else
-        nz_idx = find(n_points > threshold);  %Uncomment -> default file
+        nz_idx = find(n_points > threshold);  % Uncomment -> default file
     end
     k_new = size(nz_idx, 1);
     k = k_new;
@@ -43,9 +44,9 @@ function [nz_X_k, nz_idx_clust, k, varargout] = partitionVQ(X, idx, varargin)
     end
     
     if nargout > 3
-        idx=zeros(rows,1);
-        for j=1:k
-             idx(nz_idx_clust{j})=j;
+        idx = zeros(rows,1);
+        for j = 1 : k
+             idx(nz_idx_clust{j}) = j;
         end
         varargout{1} = idx;
     end

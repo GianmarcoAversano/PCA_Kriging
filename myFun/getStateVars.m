@@ -18,8 +18,12 @@ OUTPUT
 par_string = 'Parameter';
 
 %% Input Analysis
-
 % Necessary inputs
+if isempty(vars)
+    vars = size(Y,1);
+elseif ischar(vars)
+    vars = {vars};
+end
 if ~isa(vars,'cell')
     % if it is not a cell, it should be a scalar (number of variables)
     vars = cell(vars,1); % create a cell array, whose length is the number of variables

@@ -19,18 +19,10 @@ figure();
 
 % Input space with dimension = 1
 if dim == 1
-    y_vec = points * 0 + 1;
-    plot(points, y_vec, s1);
-    hold on; grid on;
-    plot(points, y_vec, s2);
-    hold on; grid on;
-    % Plot errors
-    for ii = 1 : n_points
-        x = points(ii);
-        y = 1;
-        txt = [' ', num2str(100 * Infl(ii), 3), '%'];
-        text(x, y, txt);
-    end
+    semilogy(points, 100 * Infl, '--*k');
+    grid on;
+    xlabel('Parameter value $[-]$','Interpreter','LaTex');
+    ylabel('Relative Influece $[\%]$','Interpreter','LaTex');
 end
 
 % Input space with dimension = 2
@@ -65,8 +57,8 @@ if dim == 3
 end
 
 % Legend and title
-tit = 'Relative Influence';
-title(tit);
+tit = ['\textbf{Relative Influence}'];
+title(tit, 'Interpreter', 'LaTex');
 hold off;
 
 end

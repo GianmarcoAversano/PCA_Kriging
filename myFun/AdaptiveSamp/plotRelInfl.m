@@ -1,5 +1,5 @@
 function [varargout] = plotRelInfl(p, Infl, varargin)
-%% Descriptio
+%% Description
 %{
 NOT READY
 

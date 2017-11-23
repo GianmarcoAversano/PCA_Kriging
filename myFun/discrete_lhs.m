@@ -1,4 +1,4 @@
-function [p, p_miss] = discrete_lhs(p_orig, p0, nSamples)
+function [p, p_miss, varargout] = discrete_lhs(p_orig, p0, nSamples)
 %% Description
 %{
 p_orig, p0: samples x variables
@@ -26,7 +26,7 @@ nSamplesToAdd = nSamples - r;
 %% Main
 
 % Run the continuous LHS
-cdp = lhsdesign(nSamplesToAdd, c,'smooth','off'); % Candidate points LHS
+cdp = lhsdesign(nSamplesToAdd, c, 'smooth','off'); % Candidate points LHS
 
 % Evaluate the upper and lower bounds
 B = zeros(2, c);
@@ -47,8 +47,12 @@ p = p0;
 for i = 1 : size(cdp, 1)
     d = p_orig - repmat(cdp(i,:), size(p_orig,1), 1); % Evaluate distances
     d = ( sum(d.^2, 2) ).^.5; % Evaluate norm of distance
-    [d_sorted, I] = sort(d); % Sort distances in ascending order
-    p = [p; addThisPoint(p_orig, p0, I)]; % Add this point
+    [~, I] = sort(d); % Sort distances in ascending order
+    try
+        p = [p; addThisPoint(p_orig, p0, I)]; % Add this point
+    catch
+        p = p;
+    end
 end
 
 %% Output
@@ -58,6 +62,10 @@ p = sortrows(unique(p,'rows'));
 % Discarded points
 I = ~ismember(p_orig, p, 'rows');
 p_miss = p_orig(I,:);
+
+if nargout
+    varargout{1} = ~I;
+end
 
 
 end

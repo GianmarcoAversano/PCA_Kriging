@@ -1,157 +1,113 @@
-function [idx, uncentered_nz_X_k, varargout] = localPCA(X, n_eigs, varargin)
-%% Input Check:
-% 1:metric; 2:pcascorespace; 3:clnum
-nin = length(varargin);
+function [idx, uncentered_nz_X_k, varargout] = localPCA(scal_X, n_eigs, k, varargin)
 
-%% Dimensions:
-[rows, columns] = size(X);
-n_eigs_max = columns;
+n_args = length(varargin);
 
-%% Names of the metric:
-metricNames{1} = 'Euclidean'; 
-metricNames{2} = 'PCA-based Reconstruction Error';
-metricNames{3} = 'Not ready'; 
-metricNames{4} = 'CVT-PCA'; % Centroidal Voronoi tessellations based PCA
+% Dimensions:
+[rows, columns] = size(scal_X);
 
-%% CENTER AND SCALE THE DATA
-X_old = X;
-alongdim = 2;     
-[scal_X, X_ave, X_gamma] = zscore(X, 0, alongdim);
-scal_Xold = zscore(X_old, 0, alongdim);
-if (alongdim==1)
-    X_ave = repmat(X_ave, rows, 1);
-elseif (alongdim==2)
-    X_ave = repmat(X_ave, 1, columns);
+% The input argument X that is passed is already the centered-scaled data,
+% see the method choosePartitioningCriteria().
+
+%%%%%%%%%%% Convergence indicators initialization %%%%%%%%%%%
+convergence = 0;    
+iter = 0;                   
+iter_max = 2000;
+eps_rec = 1.0;      
+eps_rec_min = 1.0e-02;
+a_tol = 1.0e-16;    
+r_tol = 1.0e-5;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% 0) DUMMY CHECKS
+% Check that k < rows
+if k >= rows
+    warning('We cannot look for %k clusters among %d objects.', k, rows);
+    k = max([1, round(rows * .5) - 1]); % E.g.: 100 objects, look for 49 clusters
+    fprintf('\nNumber of clusters changed to %d.\n', k);
 end
 
-%% Do you want to perform the partition on the PCA-space?
-question = '\nPerform partitioning on the PCA scores space? [y/n]   ';
-i = [];
-if nin>1
-    i = varargin{2};
-end
-if isempty(i)
-    i = input(question);
-end
-if (i==1) || (i==true) || any(i==['y','Y'])
-    ispcaspace = true; 
-    opts.mycon=[]; opts.con=false; opts.method=1; 
-    opts.k=3;%round(size(X,2));   
-    temp=pcaData(X',opts);
-    X = temp.a';
-else
-    ispcaspace = false;
-end
-
-%% Inputs check (the criterion can be chosen by providing it as input):
-if ispcaspace
-    metric=1;
-else
-    if (nin>0) && ~isempty(varargin{1})
-        metric = varargin{1}; %get it from the input, if it exists
-    else
-        s='\nChoose the Partition criterion: \n';
-        for i=1:length(metricNames)
-            s = [s,' ',num2str(i),' - ',metricNames{i},'; \n'];
-        end
-        metric = input(s); %or ask the user to provide it
-    end
-end
-critName = metricNames{metric};
-fprintf('\nPartition criterion: %s\n',critName);
-
-% F=X(:,1); % needed
-
-%% INPUTS
-% Choose the number od clusters
-if nin>2 && ~isempty(varargin{3})
-    k = varargin{3};
-else
-    k = input('\nSpecify the number of clusters \n');
-end
-% Convergence indicators initialization
-convergence = 0;    iter = 0;                   
-iter_max = 1200;
-eps_rec = 1.0;      eps_rec_min = 1.0e-02;
-a_tol = 1.0e-16;    r_tol = 1.0e-05;
 
 %% 1) INITIALIZATION
+    
+% If something went wrong, use the old code (put aside)
+% if false && (length(unique(idx)) ~= k)
+%     % Initialize centroids
+%     C_int = linspace(1, rows, k+2);     C = scal_X(round(C_int(2:k+1)), :);  
+%     
+%     % Initialize clusters 
+%     nz_X_k = cell(k,1); 
+%     sp = floor(rows/k);
+%     for j = 1 : k - 1
+%         nz_X_k{j} = scal_X(1 + sp*(j-1):j*sp, :);
+%     end
+%     nz_X_k{k} = scal_X(1 + sp*(k-1):end, :);
+% end
+
 % Centroids initialization
-C_int = linspace(1, rows, k+2);     C = scal_X(round(C_int(2:k+1)), :);
-
-nz_X_k = cell(k,1); 
-sp=floor(rows/k);
-for j=1:k-1
-    nz_X_k{j} = scal_X(1+sp*(j-1):j*sp,:);
-end
-nz_X_k{k} = scal_X(1+sp*(k-1):end,:);
-
-if (strcmp(critName,metricNames{3}))
+if n_args > 0 && ~isempty(varargin{1})
+    % User-supplied centroids initialization
+    idx_0 = varargin{1}; 
+    % Get clusters
+    nz_X_k = cell(k, 1); 
+    for j = 1 : k
+        nz_X_k{j} = scal_X(idx_0 == j, :);
+    end
+    % Get cluster centroids
     C = zeros(k, columns);        
-    for j=1:k
+    for j = 1 : k
         C(j, :) = mean(nz_X_k{j}, 1);
     end
+else
+    % KMEANS initialization
+    fprintf('\nCentroids and cluster assignments initialization. \n');
+    try
+        [idx_0, C] = kmeans(scal_X, k, 'MaxIter', 1e8); % Use kmeans to initialize 
+    catch ME
+        [idx_0, C] = kmeans(scal_X, k, 'MaxIter', 1e8); % Use kmeans to initialize 
+    end
+    k = length(unique(idx_0)); % Be sure k clusters were found 
+    % Initialize clusters
+    nz_X_k = cell(k,1); 
+    for j = 1 : k
+        nz_X_k{j} = scal_X(idx_0 == j, :);
+    end
+end
+
+% Stop here 
+if n_args > 1 && varargin{2}
+    idx = idx_0;
+    return
 end
 
 % Initialization of eigenvectors
-[eigvec,n_eig,gamma] = performlocalpca(nz_X_k, n_eigs);
-
-% eigvec=cell(k,1); gamma=cell(k,1);
-% for j=1:k
-%     eigvec{j}=eye(columns);
-%     gamma{j}=1;
+[eigvec, ~, ~] = performlocalpca(nz_X_k, n_eigs, C);
+% eigvec = cell(k,1); 
+% n_eigs_max = n_eigs;
+% parfor j = 1 : k
+%     eigvec{j} = eye(columns, n_eigs);
 % end
 
-%% 2) PARTITION
 
+%% 2) PARTITION
 eps_rec_var = Inf;
 
-while ((convergence == 0) && (iter < iter_max)) && (k~=1)
+while (convergence == 0 && iter < iter_max) && (k ~= 1)
     
     C_convergence = 0;      eps_rec_convergence = 0;   
-    fprintf('\nIteration n. %d, convergence %d \n', iter, convergence);  
+    fprintf('\nIteration n. %d, convergence %d \n', iter, convergence);
+    date
+    datestr(now, 'HH:MM:SS')
 
     sq_rec_err = zeros(rows, k);
-
-%% Metric
-    for j = 1 : k
-        C_mat = repmat(C(j, :), rows, 1); 
-        D = diag(gamma{j}); %D2=sparse(diag(gamma2{j}));
-        
-        if (metric==1)
-            % Euclidean distance
-            rec_err_os = (scal_X - C_mat);
-            sq_rec_err(:, j) = sum(rec_err_os.^2, 2); 
-            
-        elseif (metric==2)
-            % Squared mean reconstruction error
-            PI = ( eigvec{j} * eigvec{j}' );
-            rec_err_os = scal_X - C_mat - (scal_X - C_mat) * D^-1 * eigvec{j} * eigvec{j}' * D;
-            sq_rec_err(:, j) = sum(rec_err_os.^2, 2); 
-            
-        elseif (metric==3) 
-            % Orthogonality
-            c = C(j,:); normc = norm(c);
-            for i = 1 : rows
-                x = scal_X(i,:);
-                normx = norm(x);
-                temp = abs(x * c'); 
-                dist = 1;
-                if temp > eps
-                    dist = 1 - temp / ( normx * normc );
-                end
-                distance(i,1) = mean(dist);
-            end
-            sq_rec_err(:,j) = distance;
-            
-        elseif (metric==4)
-            % CVT-PCA
-            sq_rec_err(:, j)=cvtpca(scal_X,eigvec{j},gamma{j});
-            
-        end
+    % Choose the metric
+    parfor j = 1 : k
+        C_mat = repmat(C(j, :), rows, 1);     
+        % Squared mean reconstruction error
+        rec_err_os = scal_X - C_mat - (scal_X - C_mat) * eigvec{j} * eigvec{j}';
+        sq_rec_err(:, j) = sum(rec_err_os.^2, 2); 
     end
     
-    %%
+    % Evalutate the recovered minimum error
     [rec_err_min, idx] = min(sq_rec_err, [], 2);
     rec_err_min_rel = (rec_err_min);
     
@@ -159,13 +115,15 @@ while ((convergence == 0) && (iter < iter_max)) && (k~=1)
     eps_rec_new = mean(rec_err_min_rel);
     
     % Partition the data into clusters
-    [nz_X_k, nz_idx_clust, k] = partitionVQ(scal_X, idx, k);
+    if rows > columns
+        isremove = true;
+    else
+        isremove = false;
+    end
+    isremove = false; % ???
+    [nz_X_k, nz_idx_clust, k] = partitionVQ(scal_X, idx, isremove);
 
-   
-    fprintf('\nClusters dimension \n');
-    disp(nz_X_k);
-    
-    fprintf('\nThe current number of clusters is %d.\n',length(nz_X_k));
+    fprintf('\nThe current number of clusters is %d.\n', length(nz_X_k));
     
     % Evaluate the relative recontruction errors in each cluster
     rec_err_min_rel_k = cell(k, 1);
@@ -180,14 +138,12 @@ while ((convergence == 0) && (iter < iter_max)) && (k~=1)
         eps_rec_new_clust(j) = mean(rec_err_min_rel_k{j});
         size_clust(j) = size(nz_X_k{j}, 1);
     end
-    fprintf('\nGlobal mean recontruction error at iteration n. %d equal to %d', iter, eps_rec_new);
-%     fprintf('\nLocal mean recontruction error at iteration n. %d\n', iter); 
-%     for j = 1 : k
-%         fprintf('%d \t', eps_rec_new_clust(j));
-%     end
-%     fprintf('\n');
+    fprintf(...
+        '\nGlobal mean recontruction error at iteration n. %d equal to %d',...
+        iter, eps_rec_new);
         
-    %% 3) EVALUATE NEW CLUSTERS' CENTROIDS
+
+%% 3) EVALUATE NEW CLUSTERS' CENTROIDS
     C_new = zeros(k, columns);        
     for j = 1 : k
         C_new(j, :) = mean(nz_X_k{j}, 1);
@@ -195,11 +151,11 @@ while ((convergence == 0) && (iter < iter_max)) && (k~=1)
     eps_old = eps_rec_var;
     eps_rec_var = abs((eps_rec_new  - eps_rec) / eps_rec_new);
     fprintf('\nReconstruction error variance equal to %d \n', eps_rec_var);
-    if ((eps_rec_var < r_tol) && (eps_rec_new > eps_rec_min) ...
-            && (n_eigs < n_eigs_max)) 
-        n_eigs = n_eigs + 1;
-        fprintf('\n Cluster %d dimension increased to %d \n', j,  n_eigs);
-    end
+%     if ((eps_rec_var < r_tol) && (eps_rec_new > eps_rec_min) ...
+%             && (n_eigs < n_eigs_max)) 
+%         n_eigs = n_eigs + 1;
+%         fprintf('\n Clusters dimension increased to %d \n', n_eigs);
+%     end
     
     % Save the best idx yet
     if eps_old < eps_rec_var
@@ -226,102 +182,102 @@ while ((convergence == 0) && (iter < iter_max)) && (k~=1)
     C = C_new;
     eps_rec = eps_rec_new;
 
-    % 4) PERFORM LOCAL PCA
-    if metric == 3
-        nz_X_k_Cmat = cell(k, 1);
-        for j = 1 : k
-            thissize = size(nz_X_k{j} ,1);
-            C_mat = repmat(C(j, :), thissize, 1);
-            nz_X_k_Cmat{j} = nz_X_k{j} - C_mat;
-        end
-        [eigvec,n_eig,gamma]=performlocalpca(nz_X_k_Cmat,n_eigs);
-    else
-        [eigvec,n_eig,gamma]=performlocalpca(nz_X_k,n_eigs);
-    end
+
+%% 4) PERFORM LOCAL PCA
+    [eigvec, ~, ~] = performlocalpca(nz_X_k, n_eigs, C);
     iter = iter + 1;
     
 end
 
-if (k == 1)
+
+%% OUTPUT
+% Return the clusters
+if k == 1
     idx = ones(rows,1);
-    [nz_X_k, nz_idx_clust, k] = partitionVQ(scal_Xold, idx, k);
+    [nz_X_k, nz_idx_clust, k] = partitionVQ(scal_X, idx);
 else
-    [nz_X_k, nz_idx_clust, k] = partitionVQ(scal_Xold, idx, k);
+    [nz_X_k, nz_idx_clust, k] = partitionVQ(scal_X, idx, isremove);
 end
 
+% Message about convergence
 if (convergence == 0)
     fprintf('\nConvergence not reached in %d iterations \n', iter);
 end
 
-% 
+% Return the data
 uncentered_nz_X_k = cell(k, 1);
 for j = 1 : k
-    uncentered_nz_X_k{j} = X_old(nz_idx_clust{j}, :);
+    uncentered_nz_X_k{j} = scal_X(nz_idx_clust{j}, :);
+end
+
+fprintf('\n\n');
+
+% Optional outputs
+if nargout > 2
+    varargout{1}.nz_X_k = nz_X_k;
+    varargout{1}.k = k;
+    varargout{1}.nz_idx_clust = nz_idx_clust;
+end
+
 end
 
 
-% VARARGOUT (ADDED BY ME)
-    if (nargout>2)
-        varargout{1}.nz_X_k=nz_X_k;
-        varargout{1}.k=k;
-%         varargout{1}.eigvec=eigvec;
-%         varargout{1}.
-    end
-
-close all hidden
-% cd ..
-
-end
 
 
-
-%% Centroidal-Voronoi-Tessellations-based PCA
-function delta=cvtpca(firstIn,varargin)
-%This function is useful when clustering the data (before performing PCA).
-%It gives a metric to evaluate the distance between a space-vector and a
-%cluster's centroid.
+% Centroidal-Voronoi-Tessellations-based PCA
+function delta = cvtpca(firstIn, varargin)
+%{
+This function is useful when clustering the data (before performing PCA).
+It gives a metric to evaluate the distance between a space-vector and a
+cluster's centroid.
+%}
 
 % INPUTS CHECK:
-h=whos('firstIn');
+h = whos('firstIn');
 if strcmp(h.class,'pcaData') || strcmp(h.class,'podData')
     X = firstIn.Y;      
     eigvec = firstIn.modes;
     gamma = firstIn.d;
 else
     X = firstIn;
-    if (nargin<2)
+    if nargin < 2
         error('You must supply the second input: eigenvectors matrix.\n');
     end
     eigvec = varargin{1};
-    if (nargin>2)
+    if nargin > 2
         gamma = varargin{2};
     else
-        gamma = ones(size(X,1),1);
+        gamma = ones(size(X, 1), 1);
     end
 end
-gamma=gamma(:);
+gamma = gamma(:);
 
 % PRE-PROCESSING:
-[n, m] = size(X);   k = size(eigvec,2);
-delta=zeros(n,1);
+[n, m] = size(X);   
+k = size(eigvec, 2);
+delta = zeros(n, 1);
 
 if max(size(gamma)) == 1
-    eigvec_scaled = eigvec*gamma;
+    eigvec_scaled = eigvec * gamma;
 else
-    eigvec_scaled = eigvec.*repmat(gamma,1,k);
+    eigvec_scaled = eigvec .* repmat(gamma, 1, k);
 end
 
 % MAIN:
-tol=1e-22;
-for i=1:n
-    x=X(i,:); 
-    delta(i,1) = 1 - ( 1 / (norm(x)^2+tol) ) * ( norm(x*eigvec_scaled)^2 );
+tol = 1e-22;
+for i = 1 : n
+    x = X(i, :); 
+    delta(i, 1) = 1 - ( 1 / (norm(x)^2 + tol) ) * ( norm(x * eigvec_scaled)^2 );
 end
     
 end
 
-%% Perform Local PCA
-function [eigvec,n_eig,gamma,varargout]=performlocalpca(nz_X_k,n_eigs)
+
+
+
+
+% Perform Local PCA
+function [eigvec, n_eig, gamma, varargout] = performlocalpca(nz_X_k, n_eigs, C)
 
     % Number of clusters
     k = max(size(nz_X_k));
@@ -332,36 +288,34 @@ function [eigvec,n_eig,gamma,varargout]=performlocalpca(nz_X_k,n_eigs)
     gamma = cell(k, 1);
     pod = cell(k,1);
     
-    % PCA opts
-    pcaOpts.mycon=[]; pcaOpts.con=false;
-    pcaOpts.cs=false;
-    pcaOpts.method=1;
-    pcaOpts.k=n_eigs;
 
-    for j = 1 : k
-        % Load the each cluster
-        thisx=nz_X_k{j}';
-
-        % Build the pcaData object
-        pod{j}=pcaData(thisx,pcaOpts); 
+    % Apply PCA (Using Matlab's default toolbox)
+    parfor j = 1 : k
+        % Load each cluster
+        thisx = (nz_X_k{j} - repmat(C(j,:), size(nz_X_k{j},1), 1))';
+        
+        % Apply PCA
+        [coeff, ~, ~] = pca(thisx'); 
+        
+        if n_eigs > size(coeff,2)
+            this_n_eigs = size(coeff, 2);
+        else
+            this_n_eigs = n_eigs;
+        end
 
         % Outputs
-        eigvec{j}=pod{j}.modes;
-        n_eig{j}=pod{j}.k;             
-        gamma{j}=pod{j}.d;
+        n_eig{j} = n_eigs;
+        eigvec{j} = coeff(:, 1:this_n_eigs);             
+        gamma{j} = 1;
     end
-    
+          
+
     % Additional Outputs
-    if nargout>3
-        varargout{1}=pod;
+    if nargout > 3
+        varargout{1} = pod;
     end
-end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%
-
-%             'Distance' ? Distance measure
-%             'sqeuclidean' (default) | 'cityblock' | 'cosine' | 'correlation' | 'hamming'
-%             [idx,c,sumd,sq_rec_err] = kmeans(scal_X,k,'Distance','sqeuclidean',...
-%                 'EmptyAction','drop','MaxIter',1000);
     
+end
+
+
+

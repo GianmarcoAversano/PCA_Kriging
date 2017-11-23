@@ -22,6 +22,8 @@ if dim == 1
     plot1D(training_points, prediction_points, values, kriged_values, label_string, known_targets);
 elseif dim == 2
     plot2D(training_points, prediction_points, values, kriged_values, label_string, known_targets);
+elseif dim == 3
+    plot3D(training_points, prediction_points, values, kriged_values, label_string, known_targets);
 else
     error('Not possible to plot.');
 end
@@ -123,6 +125,25 @@ if nargout > 0
 end
 
 end 
+
+
+function [varargout] = plot3D(training_points, prediction_points, values, kriged_values, label_string, varargin)
+
+scatter3(training_points(:,1), training_points(:,2), training_points(:,3), 44, ...
+    values, 'filled');
+hold on;
+scatter3(prediction_points(:,1), prediction_points(:,2), prediction_points(:,3), 44, ...
+    kriged_values, 'filled');
+grid on;
+hold off;
+title('Response Surface');
+if ~isempty(label_string)
+    zlabel(label_string);
+end
+
+end
+
+
 
 
 

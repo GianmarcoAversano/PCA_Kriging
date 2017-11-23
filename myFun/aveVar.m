@@ -10,7 +10,8 @@ end
 
 y = size(n_var, m);
 for i = 1 : n_var
-    y(i,:) = mean( Y(1+n_points*(i-1):n_points*i,:) , 1 );
+    y_var = Y(1+n_points*(i-1):n_points*i,:);
+    y(i,:) = mean( y_var , 1 );
 end
 
 end 

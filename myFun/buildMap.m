@@ -93,24 +93,15 @@ function xp = Fun3(xq, p, varargin)
 % Sizes
 [rows_p, cols_p] = size(p);      
 l = length(xq);
-
-
-% Error
-if l ~= rows_p
-    error('Error.'); 
-end
-
-
 % Initialize
 xp = [];
-
-for i = 1 : l
-    [rows, cols] = size( xq{i} );
-    
-    temp = [xq{i}, repmat( p(i,:), rows, 1 )];
-    xp = [xp; temp];
+for j = 1 : length(xq)
+    for i = 1 : l
+        [rows, cols] = size( xq{i} );    
+        temp = [xq{i}, repmat( p(i,:), rows, 1 )];
+        xp = [xp; temp];
+    end
 end
-
 
 end
 
