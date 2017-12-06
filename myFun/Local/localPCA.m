@@ -87,41 +87,34 @@ end
 
 %% STEPS 2-3-4
 % 2) PARTITION
-n_eigs_max = n_eigs;
-eps_rec_var = Inf;
+n_eigs_max = min(size(scal_X));
 while (convergence == 0 && iter < iter_max) && (k ~= 1)
-    
     C_convergence = 0;      eps_rec_convergence = 0;   
     fprintf('\nIteration n. %d, convergence %d \n', iter, convergence);
+    % Print time info
     date
     datestr(now, 'HH:MM:SS')
-
+    % Reconstruction errors
     sq_rec_err = zeros(rows, k);
-    % Choose the metric
     parfor j = 1 : k
         C_mat = repmat(C(j, :), rows, 1);     
         % Squared mean reconstruction error
         rec_err_os = scal_X - C_mat - (scal_X - C_mat) * eigvec{j} * eigvec{j}';
         sq_rec_err(:, j) = sum(rec_err_os.^2, 2); 
     end
-    
     % Evalutate the recovered minimum error
     [rec_err_min, idx] = min(sq_rec_err, [], 2);
     rec_err_min_rel = (rec_err_min);
-    
     % Evaluate the global mean error
     eps_rec_new = mean(rec_err_min_rel);
-    
     % Partition the data into clusters
     [nz_X_k, nz_idx_clust, k] = partitionVQ(scal_X, idx, isremove);
     fprintf('\nThe current number of clusters is %d.\n', length(nz_X_k));
-    
     % Evaluate the relative recontruction errors in each cluster
     rec_err_min_rel_k = cell(k, 1);
     for j = 1 : k
         rec_err_min_rel_k{j} = rec_err_min_rel(nz_idx_clust{j}, 1);
     end
-    
     % Evaluate the mean error in each cluster
     eps_rec_new_clust = zeros(k, 1);
     size_clust = zeros(k, 1);
@@ -146,7 +139,6 @@ while (convergence == 0 && iter < iter_max) && (k ~= 1)
         n_eigs = n_eigs + 1;
         fprintf('\n Clusters dimension increased to %d \n', n_eigs);
     end
-
     % Judge convergence: clusters centroid and relative reconstruction
     % error
     if (eps_rec_var < r_tol)
@@ -162,7 +154,6 @@ while (convergence == 0 && iter < iter_max) && (k ~= 1)
         convergence = 1;
         fprintf('\nConvergence reached in %d iteartion \n', iter);
     end
-
     % Update recontruction error and cluster centroids
     C = C_new;
     eps_rec = eps_rec_new;
