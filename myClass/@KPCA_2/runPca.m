@@ -29,8 +29,16 @@ end
 obj.recoverPca();
 
 % Estimate errors
-if ~obj.is_local
-    obj.getPcaErrors();
+try
+    if ~obj.is_local
+        obj.getPcaErrors();
+    end
+catch ME
+    fprintf('[runPca:] Could not getPcaErrors()');
+    disp(ME)
+    for ii = 1 : length(ME.stack)
+        disp(ME.stack(ii));
+    end
 end
 
 end

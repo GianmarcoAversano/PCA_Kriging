@@ -103,7 +103,15 @@ obj.update_lpca_prop();
 obj.recoverLpca();
 
 %% Estimate errors
-obj.getLpcaErrors();
+try
+    obj.getLpcaErrors();
+catch ME
+    fprintf('[getLpcaErrors:] Could not getPcaErrors()');
+    disp(ME)
+    for ii = 1 : length(ME.stack)
+        disp(ME.stack(ii));
+    end
+end
 
 end
 

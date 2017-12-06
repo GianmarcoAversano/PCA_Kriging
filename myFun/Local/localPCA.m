@@ -1,14 +1,14 @@
 function [idx, uncentered_nz_X_k, varargout] = localPCA(scal_X, n_eigs, k, varargin)
+% The input argument X that is passed is already the centered-scaled data
 
-n_args = length(varargin);
-
-% Dimensions:
+% Dimensions
 [rows, columns] = size(scal_X);
-
-% The input argument X that is passed is already the centered-scaled data,
-% see the method choosePartitioningCriteria().
-
-%%%%%%%%%%% Convergence indicators initialization %%%%%%%%%%%
+if rows > columns
+    isremove = true;
+else
+    isremove = false;
+end
+% Convergence indicators initialization
 convergence = 0;    
 iter = 0;                   
 iter_max = 2000;
@@ -16,7 +16,6 @@ eps_rec = 1.0;
 eps_rec_min = 1.0e-02;
 a_tol = 1.0e-16;    
 r_tol = 1.0e-5;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% 0) DUMMY CHECKS
 % Check that k < rows
@@ -26,10 +25,8 @@ if k >= rows
     fprintf('\nNumber of clusters changed to %d.\n', k);
 end
 
-
 %% 1) INITIALIZATION
-    
-% If something went wrong, use the old code (put aside)
+% If something goes wrong, use the old code (put aside)
 % if false && (length(unique(idx)) ~= k)
 %     % Initialize centroids
 %     C_int = linspace(1, rows, k+2);     C = scal_X(round(C_int(2:k+1)), :);  
@@ -43,6 +40,7 @@ end
 %     nz_X_k{k} = scal_X(1 + sp*(k-1):end, :);
 % end
 
+n_args = length(varargin);
 % Centroids initialization
 if n_args > 0 && ~isempty(varargin{1})
     % User-supplied centroids initialization
@@ -56,6 +54,11 @@ if n_args > 0 && ~isempty(varargin{1})
     C = zeros(k, columns);        
     for j = 1 : k
         C(j, :) = mean(nz_X_k{j}, 1);
+    end
+    % Initialization of eigenvectors
+    eigvec = cell(k,1); 
+    parfor j = 1 : k
+        eigvec{j} = eye(columns, n_eigs);
     end
 else
     % KMEANS initialization
@@ -71,26 +74,21 @@ else
     for j = 1 : k
         nz_X_k{j} = scal_X(idx_0 == j, :);
     end
+    % Initialization of eigenvectors
+    [eigvec, ~, ~] = performlocalpca(nz_X_k, n_eigs, C);
 end
 
-% Stop here 
+% Stop here if IDX_0 is provided
 if n_args > 1 && varargin{2}
     idx = idx_0;
     return
 end
 
-% Initialization of eigenvectors
-[eigvec, ~, ~] = performlocalpca(nz_X_k, n_eigs, C);
-% eigvec = cell(k,1); 
-% n_eigs_max = n_eigs;
-% parfor j = 1 : k
-%     eigvec{j} = eye(columns, n_eigs);
-% end
 
-
-%% 2) PARTITION
+%% STEPS 2-3-4
+% 2) PARTITION
+n_eigs_max = n_eigs;
 eps_rec_var = Inf;
-
 while (convergence == 0 && iter < iter_max) && (k ~= 1)
     
     C_convergence = 0;      eps_rec_convergence = 0;   
@@ -115,14 +113,7 @@ while (convergence == 0 && iter < iter_max) && (k ~= 1)
     eps_rec_new = mean(rec_err_min_rel);
     
     % Partition the data into clusters
-    if rows > columns
-        isremove = true;
-    else
-        isremove = false;
-    end
-    isremove = false; % ???
     [nz_X_k, nz_idx_clust, k] = partitionVQ(scal_X, idx, isremove);
-
     fprintf('\nThe current number of clusters is %d.\n', length(nz_X_k));
     
     % Evaluate the relative recontruction errors in each cluster
@@ -143,23 +134,17 @@ while (convergence == 0 && iter < iter_max) && (k ~= 1)
         iter, eps_rec_new);
         
 
-%% 3) EVALUATE NEW CLUSTERS' CENTROIDS
+% 3) EVALUATE NEW CLUSTERS' CENTROIDS
     C_new = zeros(k, columns);        
     for j = 1 : k
         C_new(j, :) = mean(nz_X_k{j}, 1);
     end
-    eps_old = eps_rec_var;
     eps_rec_var = abs((eps_rec_new  - eps_rec) / eps_rec_new);
     fprintf('\nReconstruction error variance equal to %d \n', eps_rec_var);
-%     if ((eps_rec_var < r_tol) && (eps_rec_new > eps_rec_min) ...
-%             && (n_eigs < n_eigs_max)) 
-%         n_eigs = n_eigs + 1;
-%         fprintf('\n Clusters dimension increased to %d \n', n_eigs);
-%     end
-    
-    % Save the best idx yet
-    if eps_old < eps_rec_var
-        bestidx = idx;
+    if ((eps_rec_var < r_tol) && (eps_rec_new > eps_rec_min) ...
+            && (n_eigs < n_eigs_max)) 
+        n_eigs = n_eigs + 1;
+        fprintf('\n Clusters dimension increased to %d \n', n_eigs);
     end
 
     % Judge convergence: clusters centroid and relative reconstruction
@@ -183,12 +168,10 @@ while (convergence == 0 && iter < iter_max) && (k ~= 1)
     eps_rec = eps_rec_new;
 
 
-%% 4) PERFORM LOCAL PCA
+% 4) PERFORM LOCAL PCA
     [eigvec, ~, ~] = performlocalpca(nz_X_k, n_eigs, C);
-    iter = iter + 1;
-    
+    iter = iter + 1; 
 end
-
 
 %% OUTPUT
 % Return the clusters

@@ -92,6 +92,7 @@ end
 function [predictions, mse, k] = ood_level1(samples, values, prediction_points, trendFun, corrFun, guess)
 % Kriging, training the model
 k = ood(samples, values, guess, trendFun, corrFun);
+k = k.cleanup();
 if ~isempty(prediction_points)
     % Predictions
     [predictions, mse] = k.predict(prediction_points);
