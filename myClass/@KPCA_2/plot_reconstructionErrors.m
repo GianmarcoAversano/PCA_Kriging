@@ -1,4 +1,9 @@
 function [varargout] = plot_reconstructionErrors(obj, varargin)
+% DESCRIPTION
+% varargin{1}: model
+% varargin{2}: var
+% varargin{3}: plot_simple
+% 
 
 % Check the points are there 
 if isempty(obj.training_points) || isempty(obj.prediction_points)
@@ -55,7 +60,7 @@ end
 
 % If present, run only for one specific variable
 var = 'all';
-if n_args > 1
+if n_args > 1 && ~isempty(varargin{2})
     var = varargin{2};
 end
 if ~strcmp(var, 'all')

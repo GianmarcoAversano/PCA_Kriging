@@ -18,11 +18,12 @@ else
 end
 
 % Get vectors to plot
+y_data = obj.get_variable(point, variable, 'data');
 if ischar(variable)
-    y_data = obj.get_variable(point, variable, model);
+    y2plot = obj.get_variable(point, variable, model);
 else
     % Possibility to input the data to plot
-    y_data = variable;
+    y2plot = variable;
 end
 
 method = 'natural';
@@ -43,31 +44,68 @@ else
     y = unique(obj.mesh(:,2)); 
 end
 
-% Make the mesh more dense 
-deltax = abs(x(2) - x(1));
-deltay = abs(y(2) - y(1));
-delta = min([deltax, deltay]) / 3.0;
-x = min((obj.mesh(:,1))) : delta : max((obj.mesh(:,1)));
-y = min((obj.mesh(:,2))) : delta : max((obj.mesh(:,2)));
-
-% Plot original data
-[xx, yy] = meshgrid(x, y);
-F = scatteredInterpolant(obj.mesh(:,1), obj.mesh(:,2), y_data, method);
-zz = F(xx, yy);
-figure();
-if cont
-    y_min = min(y_data); y_max = max(y_data); % Range
-    v = y_min + (0 : .05 : 1) * (y_max - y_min); % Color values
-    [~, h, ~] = contourf(xx, yy, zz, v); 
-    set(h(:), 'LineStyle', 'none');
+if size(obj.mesh, 1) > 13130
+    % Make the mesh more dense 
+    idx_half = round(size(obj.mesh,1)/2); % Take half mesh
+    deltax = abs(x(2) - x(1));
+    deltay = abs(y(2) - y(1));
+    delta = min([deltax, deltay]) / 3.0;
+    x = min((obj.mesh(1:idx_half,1))) : delta : max((obj.mesh(1:idx_half,1)));
+    y = min((obj.mesh(:,2))) : delta : max((obj.mesh(:,2)));
+    x2 = min((obj.mesh(1+idx_half:end,1))) : delta : max((obj.mesh(1+idx_half:end,1)));
+    % Get data to plot
+    [xx, yy] = meshgrid(x, y);
+    F = scatteredInterpolant(obj.mesh(:,1), obj.mesh(:,2), y2plot, method);
+    zz = F(xx, yy);
+    [xx2, yy2] = meshgrid(x2, y);
+    F = scatteredInterpolant(obj.mesh(:,1), obj.mesh(:,2), y_data, method);
+    zz2 = F(xx2, yy2);
+    [xx, yy] = meshgrid([x(:); x2(:)], y);
+    zz = [zz, zz2];
+    % Plot
+    figure();
+    if cont
+        y_min = min(y2plot); y_max = max(y2plot); % Range
+        v = y_min + (0 : .05 : 1) * (y_max - y_min); % Color values
+        [~, h, ~] = contourf(xx, yy, zz, v); 
+        set(h(:), 'LineStyle', 'none');
+    else
+        imshow(zz, [], 'XData', [x(:); x2(:)], 'YData', y, 'Colormap', jet);
+        axis xy; % Flip the figure
+        axis on; 
+    end
 else
-    imshow(zz, [], 'XData', x, 'YData', y, 'Colormap', jet);
-    axis xy; % Flip the figure
-    axis on; 
+    % Make the mesh more dense 
+    deltax = abs(x(2) - x(1));
+    deltay = abs(y(2) - y(1));
+    delta = min([deltax, deltay]) / 3.0;
+    x = min((obj.mesh(:,1))) : delta : max((obj.mesh(:,1))); x = x(:);
+    y = min((obj.mesh(:,2))) : delta : max((obj.mesh(:,2))); y = y(:);
+    % Get data to plot
+    [xx, yy] = meshgrid(x, y);
+    F = scatteredInterpolant(obj.mesh(:,1), obj.mesh(:,2), y2plot, method);
+    zz = F(xx, yy);
+    F = scatteredInterpolant(obj.mesh(:,1), obj.mesh(:,2), y_data, method);
+    zz2 = F(xx, yy);
+    zz = [flip(zz,2), zz2];
+    [xx, yy] = meshgrid([flip(-x); x], y);
+    % Plot
+    figure();
+    if cont
+        y_min = min(y2plot); y_max = max(y2plot); % Range
+        v = y_min + (0 : .05 : 1) * (y_max - y_min); % Color values
+        [~, h, ~] = contourf(xx, yy, zz, v); 
+        set(h(:), 'LineStyle', 'none');
+    else
+        imshow(zz, [], 'XData', [flip(-x); x], 'YData', y, 'Colormap', jet);
+        axis xy; % Flip the figure
+        axis on; 
+    end
 end
+
 xlabel('x [m]');
 ylabel('y [m]');
-title([variable, ' - ', model]);
+title([variable, ': ', model, ' - DATA']);
 
 if nargout > 0
     varargout{1} = zz;

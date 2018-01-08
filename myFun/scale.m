@@ -19,7 +19,7 @@ function [scaled_data, gamma] = scale(unscaled_data, uncentered_data, scal_crit,
 % 1) Auto-scaling (STD), each variable is normalized by its standard
 % deviation 
 % 2) RANGE each variable is normalized by its range 
-% 3) PARETO, each variable is scaled by the suare root of its standard
+% 3) PARETO, each variable is scaled by the square root of its standard
 % deviation  
 % 4) VAST, each variable is scaled by the standard deviation and
 % coefficient of variation 

@@ -6,7 +6,7 @@ function setFigOpts(varargin)
 %%
 % Default options
 options{1} = 14;
-options{2} = 13;
+options{2} = 14;
 options{3} = 1.4;
 options{4} = 9;
 

@@ -1,7 +1,7 @@
 function getPredictionErrors(obj, varargin)
 
 % PCA
-if ~isempty(obj.kriged_pca_scores)
+if ~isempty(obj.kpca_predictions)
     obj.getKpcaPredictionsErrors();
 end
 % CPCA

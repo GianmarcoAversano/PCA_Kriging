@@ -9,7 +9,7 @@
 %
 % X0     = Matrix of centered data
 % X_ave             = Matrix of means to be subtracted
-function [X0, X_ave] = center(X, cent_crit)
+function [X0, mean_var] = center(X, cent_crit)
 % Description:
 % To get the principal components the data shas to be processed in order
 % to center the column of X (variables with zero mean). Then 

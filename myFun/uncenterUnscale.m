@@ -1,13 +1,16 @@
-function decoded_data = uncenterUnscale(decoded_data, mean_column, scaling_factors, varargin)
+function X = uncenterUnscale(X, mean_column, scaling_factors, varargin)
+% Deescription:
+% X (n_var x n_obs)
+
 % Relavant dimension
-N = size(decoded_data, 1); 
+N = size(X, 1); 
 % Diagonal matrix of scaling factors
 D = spdiags(scaling_factors, 0, N, N);
 % Unscale
-decoded_data = D * decoded_data;
+X = D * X;
 % Uncenter
-M = repmat(mean_column, 1, size(decoded_data, 2));
+M = repmat(mean_column, 1, size(X, 2));
 % Decoded data
-decoded_data = M + decoded_data;
+X = M + X;
 end
 

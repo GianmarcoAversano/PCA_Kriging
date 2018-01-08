@@ -126,7 +126,15 @@ while (convergence == 0 && iter < iter_max) && (k ~= 1)
     % Reconstruction errors
     sq_rec_err = zeros(rows, k);
     parfor j = 1 : k
-        D = diag(gamma{j});
+        try
+            D = spdiags(gamma{j}, 0, size(eigvec{j}',2), size(eigvec{j}',2));
+        catch
+           try
+               D = diag(gamma{j});
+           catch
+               D = 1;
+           end
+        end
         C_mat = repmat(C(j, :), rows, 1);     
         % Squared mean reconstruction error
         rec_err_os = (scal_X - C_mat - (scal_X - C_mat) * D^-1 * eigvec{j} * eigvec{j}' * D);

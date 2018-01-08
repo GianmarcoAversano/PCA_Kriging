@@ -11,7 +11,7 @@ function [varargout] = getError(obj, varargin)
 n_args = length(varargin); % Number of inputs
 % Stop if there are not enough inputs
 if n_args < 2
-    fprintf('This function needs 2 inputs at least.\n');
+    fprintf('This function needs 2 inputs at least, mesh and variables.\n');
     varargout{1} = [];
     varargout{2} = [];
     return

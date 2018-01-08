@@ -53,7 +53,7 @@ properties (Access = public)
     stacking = false;
     includeMoreSamples = false; % Include more samples to improve interpolation/regression
     targetBYtarget = false;
-    cs_samples = false;
+    cs_samples = true;
     selected_mesh_points = [];
     cluster_prediction = 0; % 0) Closest; 1) 2) 3)
     

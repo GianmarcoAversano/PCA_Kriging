@@ -30,7 +30,7 @@ if obj.cs_samples
     end
 end
 
-% Shorthen their names for convenience)
+% Shorthen their names for convenience
 trendFun = obj.trend_function;
 corrFun = obj.correlation_function;
 

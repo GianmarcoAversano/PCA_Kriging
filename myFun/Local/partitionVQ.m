@@ -1,15 +1,25 @@
-function [nz_X_k, nz_idx_clust, k] = partitionVQ(X, idx, k, varargin)
+function [nz_X_k, nz_idx_clust, k] = partitionVQ(X, idx, k, isremove, varargin)
+if nargin < 4
+    isremove = false;
+end
 [rows, columns] = size(X);
 idx_clust = cell(k, 1);
 n_points = zeros(k, 1); 
 for j = 1 : k
     idx_clust{j} = find(idx == j);
     n_points(j) = size(idx_clust{j}, 1);
-    if (n_points(j) < columns)
-        fprintf('\nNo points in the cluster n. %d, cluster removed \n', j);
+    if isremove
+        % Remove clusters that do not have enough population
+        if (n_points(j) < columns)
+            fprintf('\nNo points in the cluster n. %d, cluster removed \n', j);
+        end
     end
 end
-nz_idx = find(n_points >= columns);  
+if ~isremove
+    nz_idx = find(n_points > -1); % Every cluster has a population > -1: no clusters will be removed
+else
+    nz_idx = find(n_points > columns); % Only this clusters will be kept
+end  
 k_new = size(nz_idx, 1);
 k = k_new;
 nz_X_k = cell(k, 1);
@@ -18,6 +28,11 @@ for j = 1 : k
     nz_X_k{j} = zeros(n_points(j), columns);
     nz_idx_clust{j} = idx_clust{nz_idx(j)};
     nz_X_k{j} = X(nz_idx_clust{j}, :);
+end
+% Optional output
+if nargout > 3
+    idx = removeHoles(nz_idx, true);
+    varargout{1} = idx;
 end
 end
 
@@ -65,7 +80,29 @@ if nargout > 3
 end
 end
 
-
+function [nz_X_k, nz_idx_clust, k] = partitionVQ_original(X, idx, k, varargin)
+[rows, columns] = size(X);
+idx_clust = cell(k, 1);
+n_points = zeros(k, 1); 
+for j = 1 : k
+    idx_clust{j} = find(idx == j);
+    n_points(j) = size(idx_clust{j}, 1);
+    if (n_points(j) < columns)
+        fprintf('\nNo points in the cluster n. %d, cluster removed \n', j);
+    end
+    
+end
+nz_idx = find(n_points >= columns);  
+k_new = size(nz_idx, 1);
+k = k_new;
+nz_X_k = cell(k, 1);
+nz_idx_clust = cell(k, 1);
+for j = 1 : k
+    nz_X_k{j} = zeros(n_points(j), columns);
+    nz_idx_clust{j} = idx_clust{nz_idx(j)};
+    nz_X_k{j} = X(nz_idx_clust{j}, :);
+end
+end
 
  
        

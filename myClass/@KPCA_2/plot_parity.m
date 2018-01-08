@@ -69,7 +69,7 @@ end
 norm_fac = 1; % abs(max(y_data));
 
 % Plot
-Markers = { 'x' , '+' , '*' , 'o', 's' };
+Markers = {'x' , '+' , '*' , 'o', 's'};
 s = ' ';
 hf = figure(); hold on;  
 plot(y_data/norm_fac, y_pca/norm_fac, 'Marker',Markers{1}, 'Color','b', 'LineStyle','none');

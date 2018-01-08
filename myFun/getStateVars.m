@@ -25,11 +25,11 @@ elseif ischar(vars)
     vars = {vars};
 end
 if ~isa(vars,'cell')
-    % if it is not a cell, it should be a scalar (number of variables)
-    vars = cell(vars,1); % create a cell array, whose length is the number of variables
+    % If it is not a cell, it should be a scalar (number of variables)
+    vars = cell(vars, 1); % Create a cell array, whose length is the number of variables
 else
     temp = vars{1};
-    if ~isa(temp,'char')
+    if ~isa(temp, 'char')
         error('Elements of the cell array VARS should be strings.');
     end
 end
@@ -64,11 +64,13 @@ end
     end
     Q = Q'; % (nVars) X (n x nSamples) Data matrix
     
-    
-    xp = buildMap(xq, p);
-    xpnames = {}; 
-    xpnames{1} = 'x'; 
-    xpnames{2} = par_string; % names of 'x' and 'p'
+    % Optional output
+    if nargout > 1
+        xp = buildMap(xq, p);
+        xpnames = {}; 
+        xpnames{1} = 'x'; 
+        xpnames{2} = par_string; % names of 'x' and 'p'
+    end
     
 end
 
