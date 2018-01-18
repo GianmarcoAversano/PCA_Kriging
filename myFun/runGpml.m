@@ -13,12 +13,10 @@ function [mu, s2, hyp2, fmu, fs2, lp, post] = runGpml(x, y, xs, varargin)
 %% Input
 n_args = length(varargin);
 in_count = 0;
-
 % Get useful sizes
 y_dim = size(y,2);
 n_points = size(xs,1);
 x_dim = size(x,2);
-
 % Setup important regression properties
 options.meanfunc = {@meanSum, {@meanLinear, @meanConst}}; % Leave empty for no mean function
 options.covfunc = @covSEard; % Covariance function
@@ -31,7 +29,6 @@ if n_args > in_count && isstruct(varargin{in_count+1})
     options.likfunc = varargin{in_count}.likfunc; % Likelihood
     options.inffunc = varargin{in_count}.inffunc; % Inference method
 end
-
 % Initialize the hyperparameters
 hyp.mean = ones(x_dim+1, 1);
 hyp.cov = [0.1; ones(x_dim,1)];
@@ -45,7 +42,6 @@ if n_args > in_count && ~isempty(varargin{in_count+1})
         hyp = hyp{1};
     end
 end
-
 % Optimize hyperparamenters
 if n_args > in_count
     in_count = in_count + 1;

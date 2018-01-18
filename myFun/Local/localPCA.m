@@ -31,7 +31,7 @@ end
 % Convergence indicators initialization
 convergence = 0;    
 iter = 0;                   
-iter_max = 600;
+iter_max = 1200;
 eps_rec = 1.0;      
 eps_rec_min = 1.0e-02;
 a_tol = 1.0e-16;    

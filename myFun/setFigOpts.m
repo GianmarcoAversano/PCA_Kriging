@@ -5,8 +5,8 @@ function setFigOpts(varargin)
 
 %%
 % Default options
-options{1} = 14;
-options{2} = 14;
+options{1} = 18;
+options{2} = 18;
 options{3} = 1.4;
 options{4} = 9;
 
@@ -24,6 +24,6 @@ set(0,'defaulttextfontsize', options{2});
 set(0,'DefaultLineLineWidth', options{3});
 set(0,'DefaultLineMarkerSize', options{4});
 set(0,'defaulttextfontweight', 'Bold');
-set(0,'DefaultTextInterpreter', 'none');
+set(0,'DefaultTextInterpreter', 'LaTex');
 
 end

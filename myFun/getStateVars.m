@@ -24,7 +24,7 @@ if isempty(vars)
 elseif ischar(vars)
     vars = {vars};
 end
-if ~isa(vars,'cell')
+if ~iscell(vars)
     % If it is not a cell, it should be a scalar (number of variables)
     vars = cell(vars, 1); % Create a cell array, whose length is the number of variables
 else

@@ -1,7 +1,7 @@
 function Y = leaveStateVars(Q, xq, vars, p, varargin)
     
 % Useful variables
-if length(vars) == 1 
+if length(vars) == 1 && ~iscell(vars)
     nVars = vars; 
 else
     nVars = length(vars);

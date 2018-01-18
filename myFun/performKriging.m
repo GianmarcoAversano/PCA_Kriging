@@ -182,7 +182,7 @@ else
     % take the first (guess(1)) or mean(guess)
     theta0 = guess(1) * ones(1, dim);  % (1 x d) Guess
 end
-opts.hpBounds = [lb; ub];              % (2 x d) Hyperparameter optimization bounds
+opts.hpBounds = [lb; ub]; % (2 x d) Hyperparameter optimization bounds
 % Kriging
 try
     evalc('k = Kriging(opts, theta0, trendFun, corrFun);');
@@ -206,7 +206,6 @@ end
 %     opts = Stochastic.getDefaultOptions();
 %     opts.hpOptimizer = SQPLabOptimizer( dim, 1 );
 %     opts.regressionMaxOrder = dim; 
-% 
 %     % Hyperparameters 
 %     Val = 1e10;                            
 %     lb = zeros(1, dim);  ub = Val * ones(1, dim); % (1 x d) Lower and upper bounds
@@ -220,8 +219,7 @@ end
 %         % take the first (guess(1)) or mean(guess)
 %         theta0 = guess(1) * ones(1, dim);  % (1 x d) Guess
 %     end
-%     opts.hpBounds = [lb; ub];                 % (2 x d) Hyperparameter optimization bounds
-% 
+%     opts.hpBounds = [lb; ub]; % (2 x d) Hyperparameter optimization bounds
 %     % Blind Kriging
 %     evalc('k = BlindKriging( opts, theta0, trendFun, corrFun );');
 %     try
